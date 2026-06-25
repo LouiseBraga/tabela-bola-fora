@@ -1,10 +1,28 @@
+// Configuração do app Firebase
+const firebaseConfig = {
+    apiKey: "AIzaSyAXQI_c9ZQ2kck1HYC70STM1bTWpFYeeVU",
+    authDomain: "tabela-bola-fora.firebaseapp.com",
+    databaseURL: "https://tabela-bola-fora-default-rtdb.firebaseio.com/",
+    projectId: "tabela-bola-fora",
+    storageBucket: "tabela-bola-fora.firebasestorage.app",
+    messagingSenderId: "917821142911",
+    appId: "1:917821142911:web:267ba5ed629f8b885e0c4a"
+};
+
+// Inicializa o Firebase
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+
+// VARIÁVEIS GLOBAIS DO TORNEIO
 const times = ['Amarelo', 'Rosa', 'Azul', 'Roxo'];
 let partidas = [];
 let semiFinais = [];
 let finais = [];
 
-function gerarPartidas() {
-    partidas = [
+// FUNÇÕES DE INTERAÇÃO COM O BANCO DE DADOS
+
+function gerarPartidasIniciais() {
+    const partidasIniciais = [
         { id: 1, timeA: 'Amarelo', timeB: 'Roxo', pontosA: null, pontosB: null, finalizada: false },
         { id: 2, timeA: 'Azul', timeB: 'Rosa', pontosA: null, pontosB: null, finalizada: false },
         { id: 3, timeA: 'Amarelo', timeB: 'Azul', pontosA: null, pontosB: null, finalizada: false },
@@ -12,9 +30,38 @@ function gerarPartidas() {
         { id: 5, timeA: 'Rosa', timeB: 'Amarelo', pontosA: null, pontosB: null, finalizada: false },
         { id: 6, timeA: 'Roxo', timeB: 'Azul', pontosA: null, pontosB: null, finalizada: false }
     ];
+
+    // Salva a estrutura inicial limpa na nuvem
+    database.ref('torneio').set({
+        partidas: partidasIniciais,
+        semiFinais: [],
+        finais: []
+    });
 }
 
-// GERA O HTML IDÊNTICO AO PAPEL IMPRESSO
+// ESCUTADOR EM TEMPO REAL: Monitora qualquer mudança na nuvem
+function escutarBancoDeDados() {
+    database.ref('torneio').on('value', (snapshot) => {
+        const dados = snapshot.val();
+        
+        if (dados) {
+            partidas = dados.partidas || [];
+            semiFinais = dados.semiFinais || [];
+            finais = dados.finais || [];
+            
+            // Redesenha as telas automaticamente para todo mundo com os dados novos
+            renderizarJogos();
+            atualizarClassificacao();
+            renderizarMataMata();
+        } else {
+            // Se o banco estiver totalmente vazio (primeiro acesso ou pós-reset), inicializa
+            gerarPartidasIniciais();
+        }
+    });
+}
+
+// LÓGICA DE RENDERIZAÇÃO DA INTERFACE
+
 function renderizarJogos() {
     const listaJogos = document.getElementById('lista-jogos');
     listaJogos.innerHTML = '';
@@ -52,6 +99,12 @@ function renderizarJogos() {
 
 function renderizarMataMata() {
     const divMataMata = document.getElementById('mata-mata');
+    
+    if (semiFinais.length === 0) {
+        divMataMata.innerHTML = '<p style="text-align:center; color: var(--azul-oficial); margin-top:20px;">As finais serão liberadas após o término da fase de grupos.</p>';
+        return;
+    }
+
     divMataMata.innerHTML = '<h3 style="margin-bottom: 15px; color: var(--azul-oficial); text-align: center;">SEMIFINAIS</h3>';
 
     semiFinais.forEach(jogo => {
@@ -116,45 +169,8 @@ function renderizarMataMata() {
     }
 }
 
-function mudarAba(abaId) {
-    document.querySelectorAll('.aba').forEach(aba => aba.classList.remove('ativa'));
-    document.querySelectorAll('.menu button').forEach(btn => btn.classList.remove('ativo'));
-    document.getElementById(abaId).classList.add('ativa');
-    document.getElementById(`btn-${abaId}`).classList.add('ativo');
-}
 
-// Função para mostrar os avisos na tela
-function mostrarAviso(mensagem, tipo = 'erro') {
-    const toast = document.getElementById('toast');
-    toast.textContent = mensagem;
-
-    // Ajusta a cor dependendo do tipo de aviso
-    toast.className = 'toast';
-    if (tipo === 'info') toast.classList.add('info');
-    if (tipo === 'sucesso') toast.classList.add('sucesso');
-
-    // Faz aparecer
-    toast.classList.add('show');
-
-    // Esconde automaticamente depois de 3 segundos
-    setTimeout(() => {
-        toast.classList.remove('show');
-    }, 3000);
-}
-
-function validarPlacar(pontosA, pontosB) {
-    const vencedor = Math.max(pontosA, pontosB);
-    const perdedor = Math.min(pontosA, pontosB);
-    const diferenca = vencedor - perdedor;
-
-    if (vencedor < 15) return { valido: false, erro: "O set precisa ter pelo menos 15 pontos." };
-    if (vencedor === 15 && perdedor <= 13) return { valido: true, erro: null };
-    if (vencedor > 15) {
-        if (diferenca === 2) return { valido: true, erro: null };
-        else return { valido: false, erro: "Acima de 14x14, a vitória exige exatos 2 pontos de diferença." };
-    }
-    return { valido: false, erro: "Placar inválido." };
-}
+// SALVAMENTO E REGRAS DE NEGÓCIO (ENVIANDO PARA A NUVEM)
 
 function salvarResultado(idJogo) {
     const pontosA = parseInt(document.getElementById(`placarA-${idJogo}`).value);
@@ -164,18 +180,61 @@ function salvarResultado(idJogo) {
     if (pontosA === pontosB) return mostrarAviso("No vôlei não existe empate!");
 
     const validacao = validarPlacar(pontosA, pontosB);
-    if (!validacao.valido) return mostrarAviso("No vôlei não existe empate!");
+    if (!validacao.valido) return mostrarAviso(validacao.erro);
 
     const jogo = partidas.find(p => p.id === idJogo);
     jogo.pontosA = pontosA;
     jogo.pontosB = pontosB;
     jogo.finalizada = true;
 
-    renderizarJogos();
-    atualizarClassificacao();
-    verificarFaseGruposConcluida();
-    salvarDadosNavegador();
+    // Se todos os jogos terminaram, calcula as semifinais antes de subir
+    const todosFinalizados = partidas.every(j => j.finalizada === true);
+    if (todosFinalizados && semiFinais.length === 0) {
+        gerarSemifinais();
+        mostrarAviso("Fase de grupos concluída! Semifinais liberadas.", "info");
+    }
+
+    // Envia o estado atualizado do torneio para a nuvem
+    database.ref('torneio').update({
+        partidas: partidas,
+        semiFinais: semiFinais
+    });
 }
+
+function salvarMataMata(idJogo, fase) {
+    const pontosA = parseInt(document.getElementById(`placarA-${idJogo}`).value);
+    const pontosB = parseInt(document.getElementById(`placarB-${idJogo}`).value);
+
+    if (isNaN(pontosA) || isNaN(pontosB)) return mostrarAviso("Preencha a pontuação.");
+    if (pontosA === pontosB) return mostrarAviso("Vôlei não tem empate!");
+
+    const validacao = validarPlacar(pontosA, pontosB);
+    if (!validacao.valido) return mostrarAviso(validacao.erro);
+
+    let jogo = fase === 'semi' ? semiFinais.find(p => p.id === idJogo) : finais.find(p => p.id === idJogo);
+    jogo.pontosA = pontosA;
+    jogo.pontosB = pontosB;
+    jogo.finalizada = true;
+
+    if (fase === 'semi') {
+        const todasSemiFinalizadas = semiFinais.every(j => j.finalizada === true);
+        if (todasSemiFinalizadas && finais.length === 0) {
+            gerarFinais();
+        }
+    }
+
+    // Sobe as atualizações do mata-mata para a nuvem
+    database.ref('torneio').update({
+        semiFinais: semiFinais,
+        finais: finais
+    });
+
+    if (fase === 'final') {
+        verificarTorneioConcluido();
+    }
+}
+
+// CRITÉRIOS DE DESEMPATE E CHAVEAMENTOS
 
 function atualizarClassificacao() {
     let tabela = {};
@@ -220,14 +279,6 @@ function atualizarClassificacao() {
     });
 }
 
-function verificarFaseGruposConcluida() {
-    const todosFinalizados = partidas.every(jogo => jogo.finalizada === true);
-    if (todosFinalizados && semiFinais.length === 0) {
-        mostrarAviso("Fase de grupos concluída! Semifinais liberadas.", "info");
-        gerarSemifinais();
-    }
-}
-
 function gerarSemifinais() {
     let tabela = {};
     times.forEach(time => tabela[time] = 0);
@@ -253,47 +304,18 @@ function gerarSemifinais() {
         { id: 'semi1', timeA: rankingFinal[0].nome, timeB: rankingFinal[3].nome, pontosA: null, pontosB: null, finalizada: false },
         { id: 'semi2', timeA: rankingFinal[1].nome, timeB: rankingFinal[2].nome, pontosA: null, pontosB: null, finalizada: false }
     ];
-    renderizarMataMata();
-    salvarDadosNavegador();
 }
 
-function salvarMataMata(idJogo, fase) {
-    const pontosA = parseInt(document.getElementById(`placarA-${idJogo}`).value);
-    const pontosB = parseInt(document.getElementById(`placarB-${idJogo}`).value);
+function gerarFinais() {
+    const vencedorSemi1 = semiFinais[0].pontosA > semiFinais[0].pontosB ? semiFinais[0].timeA : semiFinais[0].timeB;
+    const perdedorSemi1 = semiFinais[0].pontosA < semiFinais[0].pontosB ? semiFinais[0].timeA : semiFinais[0].timeB;
+    const vencedorSemi2 = semiFinais[1].pontosA > semiFinais[1].pontosB ? semiFinais[1].timeA : semiFinais[1].timeB;
+    const perdedorSemi2 = semiFinais[1].pontosA < semiFinais[1].pontosB ? semiFinais[1].timeA : semiFinais[1].timeB;
 
-    if (isNaN(pontosA) || isNaN(pontosB)) return mostrarAviso("Preencha a pontuação.");
-    if (pontosA === pontosB) return mostrarAviso("Vôlei não tem empate!");
-
-    const validacao = validarPlacar(pontosA, pontosB);
-    if (!validacao.valido) return mostrarAviso(validacao.erro);
-
-    let jogo = fase === 'semi' ? semiFinais.find(p => p.id === idJogo) : finais.find(p => p.id === idJogo);
-    jogo.pontosA = pontosA;
-    jogo.pontosB = pontosB;
-    jogo.finalizada = true;
-
-    renderizarMataMata();
-    salvarDadosNavegador();
-
-    if (fase === 'semi') verificarSemifinaisConcluidas();
-    else verificarTorneioConcluido();
-}
-
-function verificarSemifinaisConcluidas() {
-    const todasFinalizadas = semiFinais.every(jogo => jogo.finalizada === true);
-    if (todasFinalizadas && finais.length === 0) {
-        const vencedorSemi1 = semiFinais[0].pontosA > semiFinais[0].pontosB ? semiFinais[0].timeA : semiFinais[0].timeB;
-        const perdedorSemi1 = semiFinais[0].pontosA < semiFinais[0].pontosB ? semiFinais[0].timeA : semiFinais[0].timeB;
-        const vencedorSemi2 = semiFinais[1].pontosA > semiFinais[1].pontosB ? semiFinais[1].timeA : semiFinais[1].timeB;
-        const perdedorSemi2 = semiFinais[1].pontosA < semiFinais[1].pontosB ? semiFinais[1].timeA : semiFinais[1].timeB;
-
-        finais = [
-            { id: 'final_3lugar', tipo: '3lugar', timeA: perdedorSemi1, timeB: perdedorSemi2, pontosA: null, pontosB: null, finalizada: false },
-            { id: 'final_1lugar', tipo: '1lugar', timeA: vencedorSemi1, timeB: vencedorSemi2, pontosA: null, pontosB: null, finalizada: false }
-        ];
-        renderizarMataMata();
-        salvarDadosNavegador();
-    }
+    finais = [
+        { id: 'final_3lugar', tipo: '3lugar', timeA: perdedorSemi1, timeB: perdedorSemi2, pontosA: null, pontosB: null, finalizada: false },
+        { id: 'final_1lugar', tipo: '1lugar', timeA: vencedorSemi1, timeB: vencedorSemi2, pontosA: null, pontosB: null, finalizada: false }
+    ];
 }
 
 function verificarTorneioConcluido() {
@@ -305,62 +327,50 @@ function verificarTorneioConcluido() {
     }
 }
 
-function salvarDadosNavegador() {
-    localStorage.setItem('torneio_partidas', JSON.stringify(partidas));
-    localStorage.setItem('torneio_semifinais', JSON.stringify(semiFinais));
-    localStorage.setItem('torneio_finais', JSON.stringify(finais));
-}
+// FUNÇÕES UTILITÁRIAS
 
-function iniciarApp() {
-    const partidasSalvas = localStorage.getItem('torneio_partidas');
-    const semisSalvas = localStorage.getItem('torneio_semifinais');
-    const finaisSalvas = localStorage.getItem('torneio_finais');
+function validarPlacar(pontosA, pontosB) {
+    const vencedor = Math.max(pontosA, pontosB);
+    const perdedor = Math.min(pontosA, pontosB);
+    const diferenca = vencedor - perdedor;
 
-    if (partidasSalvas) {
-        partidas = JSON.parse(partidasSalvas);
-        semiFinais = semisSalvas ? JSON.parse(semisSalvas) : [];
-        finais = finaisSalvas ? JSON.parse(finaisSalvas) : [];
-        
-        renderizarJogos();
-        atualizarClassificacao();
-        if (semiFinais.length > 0) renderizarMataMata();
-    } else {
-        gerarPartidas();
-        renderizarJogos();
+    if (vencedor < 15) return { valido: false, erro: "O set precisa ter pelo menos 15 pontos." };
+    if (vencedor === 15 && perdedor <= 13) return { valido: true, erro: null };
+    if (vencedor > 15) {
+        if (diferenca === 2) return { valido: true, erro: null };
+        else return { valido: false, erro: "Acima de 14x14, a vitória exige exatos 2 pontos de diferença." };
     }
+    return { valido: false, erro: "Placar inválido." };
 }
 
+function mudarAba(abaId) {
+    document.querySelectorAll('.aba').forEach(aba => aba.classList.remove('ativa'));
+    document.querySelectorAll('.menu button').forEach(btn => btn.classList.remove('ativo'));
+    document.getElementById(abaId).classList.add('ativa');
+    document.getElementById(`btn-${abaId}`).classList.add('ativo');
+}
 
-// FUNÇÃO PARA ZERAR O TORNEIO
+function mostrarAviso(mensagem, tipo = 'erro') {
+    const toast = document.getElementById('toast');
+    toast.textContent = mensaje = mensagem;
+
+    toast.className = 'toast';
+    if (tipo === 'info') toast.classList.add('info');
+    if (tipo === 'sucesso') toast.classList.add('sucesso');
+
+    toast.classList.add('show');
+    setTimeout(() => { toast.classList.remove('show'); }, 3000);
+}
+
 function resetarTorneio() {
-    // Pop-up nativo de confirmação aqui 
-    // por ser um padrão de segurança essencial contra toques acidentais na tela
-    const confirmar = confirm("🚨 ATENÇÃO: Isso vai apagar todo o progresso atual. Tem certeza que deseja iniciar um novo torneio?");
-    
+    const confirmar = confirm("🚨 ATENÇÃO: Isso vai apagar o torneio na nuvem para TODO MUNDO. Deseja continuar?");
     if (confirmar) {
-        // 1. Limpa os dados salvos no navegador do celular
-        localStorage.removeItem('torneio_partidas');
-        localStorage.removeItem('torneio_semifinais');
-        localStorage.removeItem('torneio_finais');
-
-        // 2. Esvazia as variáveis das finais
-        semiFinais = [];
-        finais = [];
-        
-        // 3. Restaura o texto inicial da aba de Finais
-        document.getElementById('mata-mata').innerHTML = '<p style="text-align:center; color: var(--azul-oficial); margin-top:20px;">As finais serão liberadas após o término da fase de grupos.</p>';
-
-        // 4. Gera a fase de grupos limpa e atualiza as telas
-        gerarPartidas();
-        renderizarJogos();
-        atualizarClassificacao();
-        
-        // 5. Força o aplicativo a voltar para a primeira aba
+        // Remove o nó principal do Firebase. O escutador vai detectar e rodar o gerarPartidasIniciais()
+        database.ref('torneio').remove();
         mudarAba('grupos');
-        
-        // 6. Mostra o nosso toast notification bonito
-        mostrarAviso("Novo torneio iniciado com sucesso!", "sucesso");
+        mostrarAviso("Novo torneio iniciado!", "sucesso");
     }
 }
 
-iniciarApp();
+// Inicialização do App conectando ao Firebase
+escutarBancoDeDados();
