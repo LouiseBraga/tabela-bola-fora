@@ -41,10 +41,11 @@
             </div>
 
             <div class="card-cadastro">
-                <h3 style="color: var(--azul-oficial); margin-bottom: 10px;">2. Escalar para os Times de Hoje</h3>
+                <h3 style="color: var(--azul-oficial); margin-bottom: 10px;">2. Escalação dos times</h3>
                 <div class="linha-inputs">
-                    <select id="busca-jogador">
-                        </select>
+                    <input type="text" id="busca-jogador-input" list="lista-jogadores-disponiveis" placeholder="Digitar nome do jogador..." autocomplete="off">
+                    <datalist id="lista-jogadores-disponiveis"></datalist>
+                    
                     <select id="escolha-time">
                         <option value="Amarelo">Time Amarelo</option>
                         <option value="Rosa">Time Rosa</option>

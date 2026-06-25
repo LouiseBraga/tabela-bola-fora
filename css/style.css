@@ -400,8 +400,19 @@ td { font-size: 1.1rem; font-weight: bold; }
 
 .grid-times {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(2, 1fr); /* Força exatamente 2 colunas */
+    gap: 15px;
+    width: 100%;
+    max-width: 700px; /* Limita a largura para os cards não ficarem esticados demais no PC */
+    margin: 0 auto; /* Centraliza o bloco todo no meio da tela */
+}
+
+/*Responsividade: Ajusta a grid para 1 coluna em telas menores (celulares) */
+@media (max-width: 600px) {
+    .grid-times {
+        grid-template-columns: 1fr; /* Muda para 1 coluna (um card embaixo do outro) */
+        max-width: 100%; /* Permite usar toda a largura da tela do celular */
+    }
 }
 
 .escondido {

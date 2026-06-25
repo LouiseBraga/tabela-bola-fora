@@ -377,42 +377,120 @@ function resetarTorneio() {
 escutarBancoDeDados();
 
 
+
 // GESTÃO DE ELENCO E TIMES
+
+let idEmEdicao = null;
 
 function adicionarJogador() {
     const nomeInput = document.getElementById('novo-nome');
     const tipoInput = document.getElementById('novo-tipo');
+    const nomeCadastrar = nomeInput.value.trim();
     
-    if (nomeInput.value.trim() === '') return mostrarAviso("Digite o nome do jogador.");
+    if (nomeCadastrar === '') return mostrarAviso("Digite o nome do jogador.");
 
-    const novoJogador = {
-        id: Date.now().toString(),
-        nome: nomeInput.value.trim(),
-        tipo: tipoInput.value,
-        presente: false,
-        time: 'Sem Time'
-    };
+    // Checa se já existe um jogador com esse nome (ignorando maiúsculas/minúsculas)
+    const jogadorExistente = elenco.find(j => j.nome.toLowerCase() === nomeCadastrar.toLowerCase());
 
-    elenco.push(novoJogador);
+    if (idEmEdicao !== null) {
+        // MODO EDIÇÃO
+        if (jogadorExistente && jogadorExistente.id !== idEmEdicao) {
+            return mostrarAviso("Este nome já está cadastrado em outro jogador!");
+        }
+        
+        const jogador = elenco.find(j => j.id === idEmEdicao);
+        if (jogador) {
+            jogador.nome = nomeCadastrar;
+            jogador.tipo = tipoInput.value;
+        }
+        
+        // Finaliza a edição e volta o botão ao normal
+        idEmEdicao = null;
+        const btnSalvar = document.querySelector('.card-cadastro .btn-salvar');
+        btnSalvar.textContent = "Salvar no Sistema";
+        btnSalvar.style.backgroundColor = ""; // Reseta cor
+        btnSalvar.style.color = "";
+        
+        mostrarAviso("Cadastro atualizado com sucesso!", "sucesso");
+
+    } else {
+        // MODO CADASTRO NOVO
+        if (jogadorExistente) {
+            return mostrarAviso("Este nome já está cadastrado! Use um sobrenome ou apelido para diferenciar.");
+        }
+
+        const novoJogador = {
+            id: Date.now().toString(),
+            nome: nomeCadastrar,
+            tipo: tipoInput.value,
+            presente: false,
+            time: 'Sem Time'
+        };
+        elenco.push(novoJogador);
+        mostrarAviso("Jogador cadastrado com sucesso!", "sucesso");
+    }
+
     nomeInput.value = ''; // Limpa o campo
-    
     salvarElencoNuvem();
-    mostrarAviso("Jogador cadastrado com sucesso!", "sucesso");
+}
+
+function editarJogador(id) {
+    const jogador = elenco.find(j => j.id === id);
+    if (jogador) {
+        // Preenche os campos com os dados do jogador
+        document.getElementById('novo-nome').value = jogador.nome;
+        document.getElementById('novo-tipo').value = jogador.tipo;
+        
+        // Define que estamos em modo de edição
+        idEmEdicao = id;
+        
+        // Altera o visual do botão para chamar a atenção
+        const btnSalvar = document.querySelector('.card-cadastro .btn-salvar');
+        btnSalvar.textContent = "Salvar Edição";
+        btnSalvar.style.backgroundColor = "#ffc107"; // Amarelo
+        btnSalvar.style.color = "#000";
+        
+        // Rola a tela suavemente para o topo onde estão os campos
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+}
+
+function identificarJogadorPorNome(nome) {
+    return elenco.find(j => j.nome.toLowerCase() === nome.toLowerCase());
 }
 
 function escalarJogador() {
-    const idJogador = document.getElementById('busca-jogador').value;
+    const inputJogador = document.getElementById('busca-jogador-input');
+    const nomeJogador = inputJogador.value.trim();
     const timeEscolhido = document.getElementById('escolha-time').value;
 
-    if (!idJogador) return mostrarAviso("Selecione um jogador na lista!");
+    if (!nomeJogador) return mostrarAviso("Digite ou selecione um jogador!");
 
-    const jogador = elenco.find(j => j.id === idJogador);
-    if (jogador) {
-        jogador.presente = true;
-        jogador.time = timeEscolhido;
-        salvarElencoNuvem();
-        mostrarAviso(`${jogador.nome} escalado no time ${timeEscolhido}!`, "sucesso");
+    // VALIDAÇÃO 2: Verificar se o jogador realmente existe no sistema
+    const jogador = identificarJogadorPorNome(nomeJogador);
+    if (!jogador) {
+        return mostrarAviso("Jogador não encontrado! Verifique a grafia ou cadastre-o primeiro.");
     }
+    
+    if (jogador.presente && jogador.time !== 'Sem Time') {
+        return mostrarAviso("Este jogador já está escalado em um time!");
+    }
+
+    // VALIDAÇÃO 3: Limitar o time a no máximo 4 integrantes (Quarteto)
+    const totalNoTime = elenco.filter(j => j.time === timeEscolhido && j.presente).length;
+    if (totalNoTime >= 4) {
+        return mostrarAviso(`O Time ${timeEscolhido} já está completo (máximo 4 jogadores)!`);
+    }
+
+    // Executa a escalação na nuvem
+    jogador.presente = true;
+    jogador.time = timeEscolhido;
+    
+    // Limpa o campo de busca para o próximo jogador
+    inputJogador.value = '';
+    
+    salvarElencoNuvem();
+    mostrarAviso(`${jogador.nome} escalado no time ${timeEscolhido}!`, "sucesso");
 }
 
 function removerDoTime(id) {
@@ -436,23 +514,23 @@ function salvarElencoNuvem() {
 }
 
 function renderizarElenco() {
-    const selectBusca = document.getElementById('busca-jogador');
+    const datalistBusca = document.getElementById('lista-jogadores-disponiveis');
     const timesDiv = document.getElementById('times-formados');
     const corpoTabela = document.getElementById('corpo-tabela-elenco');
     
-    // 1. Atualizar Select de Busca (Mostra apenas quem NÃO está em um time)
-    selectBusca.innerHTML = '<option value="">-- Selecione o jogador --</option>';
+    // 1. Atualizar o Datalist de Busca (Apenas com quem está sem time)
+    datalistBusca.innerHTML = '';
     let disponiveis = elenco.filter(j => j.time === 'Sem Time' || !j.presente);
     
-    // Coloca em ordem alfabética para achar mais rápido
+    // Organiza em ordem alfabética para facilitar a visualização do filtro
     disponiveis.sort((a, b) => a.nome.localeCompare(b.nome));
 
     disponiveis.forEach(j => {
-        let tag = j.tipo === 'mensalista' ? '⭐️ Mensalista' : '🏐 Diarista';
-        selectBusca.innerHTML += `<option value="${j.id}">${j.nome} (${tag})</option>`;
+        // Alimenta as opções de autocompletar do campo de texto
+        datalistBusca.innerHTML += `<option value="${j.nome}"></option>`;
     });
 
-    // 2. Renderizar os 4 Times
+    // 2. Renderizar os 4 Times (Cards de Visualização)
     timesDiv.innerHTML = '';
     times.forEach(nomeTime => {
         const jogadoresDoTime = elenco.filter(j => j.time === nomeTime && j.presente);
@@ -472,7 +550,7 @@ function renderizarElenco() {
 
         timesDiv.innerHTML += `
             <div class="time-container" style="border-top: 4px solid ${coresBorda[nomeTime]}">
-                <div class="time-header" style="color: ${coresBorda[nomeTime]}; text-transform: uppercase;">${nomeTime} (${jogadoresDoTime.length})</div>
+                <div class="time-header" style="color: ${coresBorda[nomeTime]}; text-transform: uppercase;">${nomeTime} (${jogadoresDoTime.length}/4)</div>
                 <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.9rem;">
                     ${listaHtml}
                 </ul>
@@ -480,38 +558,24 @@ function renderizarElenco() {
         `;
     });
 
-    // 3. Renderizar Tabela Geral de Cadastros (Aquela que fica oculta)
+    // 3. Renderizar Tabela Geral de Cadastros (Oculta por padrão, agora com os botões Editar e Excluir)
     corpoTabela.innerHTML = '';
-    elenco.forEach(j => {
+
+    // Cria uma cópia do array de elenco e organiza em ordem alfabética (de A a Z)
+    let elencoOrdenado = [...elenco].sort((a, b) => a.nome.localeCompare(b.nome));
+
+    elencoOrdenado.forEach(j => {
         let tagClass = j.tipo === 'mensalista' ? 'background: #ffd700; color: #856404;' : 'background: #17a2b8; color: #fff;';
         let texto = j.tipo === 'mensalista' ? 'Mensalista' : 'Diarista';
         corpoTabela.innerHTML += `
             <tr>
                 <td style="font-weight: bold; color: var(--azul-oficial);">${j.nome}</td>
                 <td><span style="${tagClass} padding: 2px 6px; border-radius: 10px; font-size: 0.8rem;">${texto}</span></td>
-                <td><button style="background: #dc3545; color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer;" onclick="removerJogador('${j.id}')">🗑️</button></td>
+                <td>
+                    <button style="background: #ffc107; color: #000; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; margin-right: 5px;" onclick="editarJogador('${j.id}')" title="Editar">✏️</button>
+                    <button style="background: #dc3545; color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer;" onclick="removerJogador('${j.id}')" title="Excluir">🗑️</button>
+                </td>
             </tr>
         `;
     });
-}
-
-// === SUBSTITUA A SUA FUNÇÃO resetarTorneio() ATUAL POR ESTA ===
-function resetarTorneio() {
-    const confirmar = confirm("🚨 ATENÇÃO: Isso vai zerar os placares e esvaziar os times. Os jogadores cadastrados NÃO serão apagados. Deseja continuar?");
-    if (confirmar) {
-        // Apaga os jogos
-        database.ref('torneio/partidas').remove();
-        database.ref('torneio/semiFinais').remove();
-        database.ref('torneio/finais').remove();
-        
-        // Remove todo mundo dos times (mas mantém o cadastro)
-        elenco.forEach(j => {
-            j.presente = false;
-            j.time = 'Sem Time';
-        });
-        salvarElencoNuvem();
-        
-        mudarAba('elenco');
-        mostrarAviso("Novo torneio iniciado! Pode escalar os times novamente.", "sucesso");
-    }
 }
