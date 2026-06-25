@@ -385,3 +385,25 @@ td { font-size: 1.1rem; font-weight: bold; }
     border-bottom: 2px solid #eee;
     margin-bottom: 5px;
 }
+
+/* Estilos para a tela de Elenco */
+.linha-inputs {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap; /* Faz quebrar a linha no celular se não couber */
+}
+
+.linha-inputs > * {
+    flex: 1;
+    min-width: 130px; /* Otimização dos botões no celular */
+}
+
+.grid-times {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+}
+
+.escondido {
+    display: none;
+}

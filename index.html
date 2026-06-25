@@ -14,7 +14,6 @@
         </div>
         
         <nav class="menu">
-            <!-- Botão Novo de Elenco (Definido como ativo) -->
             <button onclick="mudarAba('elenco')" id="btn-elenco" class="ativo">Elenco & Times</button>
             <button onclick="mudarAba('grupos')" id="btn-grupos">Fase de Grupos</button>
             <button onclick="mudarAba('classificacao')" id="btn-classificacao">Classificação</button>
@@ -27,33 +26,59 @@
     </header>
 
     <main id="app-container">
-        <!-- NOVA ABA: GESTÃO DE JOGADORES (Definida como ativa) -->
         <section id="elenco" class="aba ativa">
-            <h2 style="text-align: center; color: var(--azul-oficial); margin-bottom: 15px;">Gestão de Jogadores</h2>
             
             <div class="card-cadastro">
-                <input type="text" id="novo-nome" placeholder="Nome do Jogador..." maxlength="20">
-                <select id="novo-tipo">
-                    <option value="mensalista">Mensalista ⭐️</option>
-                    <option value="diarista">Diarista 🏐</option>
-                </select>
-                <button class="btn-salvar" onclick="adicionarJogador()" style="margin-top: 10px;">Adicionar à Lista</button>
+                <h3 style="color: var(--azul-oficial); margin-bottom: 10px;">1. Cadastrar Novo Jogador</h3>
+                <div class="linha-inputs">
+                    <input type="text" id="novo-nome" placeholder="Nome do Jogador..." maxlength="20">
+                    <select id="novo-tipo">
+                        <option value="mensalista">Mensalista ⭐️</option>
+                        <option value="diarista">Diarista 🏐</option>
+                    </select>
+                    <button class="btn-salvar" onclick="adicionarJogador()">Salvar no Sistema</button>
+                </div>
             </div>
 
-            <div class="grid-elenco">
-                <div class="lista-geral">
-                    <h3 style="color: var(--azul-oficial); margin-bottom: 10px;">Lista Geral (Marque a Presença)</h3>
-                    <div id="lista-jogadores-cadastrados"></div>
+            <div class="card-cadastro">
+                <h3 style="color: var(--azul-oficial); margin-bottom: 10px;">2. Escalar para os Times de Hoje</h3>
+                <div class="linha-inputs">
+                    <select id="busca-jogador">
+                        </select>
+                    <select id="escolha-time">
+                        <option value="Amarelo">Time Amarelo</option>
+                        <option value="Rosa">Time Rosa</option>
+                        <option value="Azul">Time Azul</option>
+                        <option value="Roxo">Time Roxo</option>
+                    </select>
+                    <button class="btn-salvar" onclick="escalarJogador()">Escalar Jogador</button>
                 </div>
+            </div>
 
-                <div class="montagem-times">
-                    <h3 style="color: var(--azul-oficial); margin-bottom: 10px;">Montar Times (Presentes)</h3>
-                    <div id="times-formados"></div>
+            <div class="montagem-times">
+                <h3 style="color: var(--azul-oficial); margin-bottom: 15px; text-align: center; margin-top: 20px;">Times Formados</h3>
+                <div id="times-formados" class="grid-times"></div>
+            </div>
+
+            <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #ccc;">
+                <h4 style="color: #666; cursor: pointer; text-align: center;" onclick="document.getElementById('tabela-geral-container').classList.toggle('escondido')">
+                    👀 Mostrar/Ocultar Todos os Jogadores Cadastrados
+                </h4>
+                <div id="tabela-geral-container" class="escondido" style="margin-top: 15px;">
+                    <table class="tabela-classificacao" style="width: 100%;">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Tipo</th>
+                                <th>Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody id="corpo-tabela-elenco"></tbody>
+                    </table>
                 </div>
             </div>
         </section>
 
-        <!-- ABA DOS GRUPOS (Perdeu a classe 'ativa' para não sobrepor a do elenco) -->
         <section id="grupos" class="aba">
             <h2>Jogos da Fase de Grupos</h2>
             <div id="lista-jogos"></div>
@@ -82,7 +107,6 @@
         </section>
     </main>
 
-    <!-- Container Invisível para os Avisos do Sistema (Toasts) -->
     <div id="toast" class="toast"></div>
 
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
