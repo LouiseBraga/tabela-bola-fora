@@ -278,3 +278,110 @@ td { font-size: 1.1rem; font-weight: bold; }
 .btn-reset:active {
     background-color: #ac2925;
 }
+
+/* ESTILOS DA ABA DE ELENCO E TIMES */
+.card-cadastro {
+    background: #fff;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.card-cadastro input, .card-cadastro select {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 1rem;
+}
+
+.jogador-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 8px;
+    border-left: 4px solid #ccc;
+}
+
+.jogador-item.presente {
+    border-left-color: #28a745;
+    background: #e9fced;
+}
+
+.info-jogador {
+    display: flex;
+    flex-direction: column;
+}
+
+.nome-jogador {
+    font-weight: bold;
+    color: var(--azul-oficial);
+}
+
+.tag-tipo {
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    border-radius: 10px;
+    width: max-content;
+    margin-top: 3px;
+}
+
+.tag-mensalista { background: #ffd700; color: #856404; }
+.tag-diarista { background: #17a2b8; color: #fff; }
+
+.acoes-jogador {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+.acoes-jogador select {
+    padding: 5px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+}
+
+.btn-presenca {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    color: #fff;
+    background: #6c757d;
+}
+
+.jogador-item.presente .btn-presenca {
+    background: #28a745;
+}
+
+.btn-remover {
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 10px;
+    cursor: pointer;
+}
+
+.time-container {
+    background: #fff;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.time-header {
+    font-weight: bold;
+    text-align: center;
+    padding-bottom: 5px;
+    border-bottom: 2px solid #eee;
+    margin-bottom: 5px;
+}

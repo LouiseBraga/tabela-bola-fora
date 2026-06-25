@@ -14,7 +14,9 @@
         </div>
         
         <nav class="menu">
-            <button onclick="mudarAba('grupos')" id="btn-grupos" class="ativo">Fase de Grupos</button>
+            <!-- Botão Novo de Elenco (Definido como ativo) -->
+            <button onclick="mudarAba('elenco')" id="btn-elenco" class="ativo">Elenco & Times</button>
+            <button onclick="mudarAba('grupos')" id="btn-grupos">Fase de Grupos</button>
             <button onclick="mudarAba('classificacao')" id="btn-classificacao">Classificação</button>
             <button onclick="mudarAba('finais')" id="btn-finais">Finais</button>
         </nav>
@@ -25,7 +27,34 @@
     </header>
 
     <main id="app-container">
-        <section id="grupos" class="aba ativa">
+        <!-- NOVA ABA: GESTÃO DE JOGADORES (Definida como ativa) -->
+        <section id="elenco" class="aba ativa">
+            <h2 style="text-align: center; color: var(--azul-oficial); margin-bottom: 15px;">Gestão de Jogadores</h2>
+            
+            <div class="card-cadastro">
+                <input type="text" id="novo-nome" placeholder="Nome do Jogador..." maxlength="20">
+                <select id="novo-tipo">
+                    <option value="mensalista">Mensalista ⭐️</option>
+                    <option value="diarista">Diarista 🏐</option>
+                </select>
+                <button class="btn-salvar" onclick="adicionarJogador()" style="margin-top: 10px;">Adicionar à Lista</button>
+            </div>
+
+            <div class="grid-elenco">
+                <div class="lista-geral">
+                    <h3 style="color: var(--azul-oficial); margin-bottom: 10px;">Lista Geral (Marque a Presença)</h3>
+                    <div id="lista-jogadores-cadastrados"></div>
+                </div>
+
+                <div class="montagem-times">
+                    <h3 style="color: var(--azul-oficial); margin-bottom: 10px;">Montar Times (Presentes)</h3>
+                    <div id="times-formados"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ABA DOS GRUPOS (Perdeu a classe 'ativa' para não sobrepor a do elenco) -->
+        <section id="grupos" class="aba">
             <h2>Jogos da Fase de Grupos</h2>
             <div id="lista-jogos"></div>
         </section>
@@ -53,11 +82,11 @@
         </section>
     </main>
 
-    
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <!-- Container Invisível para os Avisos do Sistema (Toasts) -->
+    <div id="toast" class="toast"></div>
 
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
