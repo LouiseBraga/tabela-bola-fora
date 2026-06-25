@@ -579,3 +579,147 @@ function renderizarElenco() {
         `;
     });
 }
+
+
+// EXPORTAÇÃO DE RELATÓRIO EM PDF
+
+function exportarRelatorioPDF() {
+    // 1. Criar um elemento HTML temporário para estruturar o relatório
+    const relatorio = document.createElement('div');
+    relatorio.style.padding = '30px';
+    relatorio.style.fontFamily = 'Arial, sans-serif';
+    relatorio.style.color = '#333';
+
+    // Data atual formatada
+    const dataHoje = new Date().toLocaleDateString('pt-BR', { 
+        day: '2-digit', 
+        month: '2-digit', 
+        year: 'numeric' 
+    });
+
+    // 2. Montar o Cabeçalho do Relatório
+    let htmlConteudo = `
+        <div style="text-align: center; border-bottom: 2px solid #002d57; padding-bottom: 15px; margin-bottom: 25px;">
+            <h1 style="color: #002d57; margin: 0; font-size: 24px; text-transform: uppercase;">Relatório Oficial do Torneio</h1>
+            <p style="margin: 5px 0 0 0; font-weight: bold; color: #666;">Grupo Bola Fora — Rodada de ${dataHoje}</p>
+        </div>
+    `;
+
+    // 3. Adicionar Tabela de Classificação Final
+    htmlConteudo += `
+        <h2 style="color: #002d57; font-size: 16px; border-left: 4px solid #ffc107; padding-left: 8px; margin-bottom: 10px;">CLASSIFICAÇÃO FINAL DA RODADA DE GRUPOS</h2>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 14px;">
+            <thead>
+                <tr style="background-color: #002d57; color: white; text-align: left;">
+                    <th style="padding: 8px; width: 15%;">Pos</th>
+                    <th style="padding: 8px; width: 55%;">Time</th>
+                    <th style="padding: 8px; width: 30%;">Vitórias</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    // Pega a tabela de classificação calculada na tela atual
+    const linhasClassificacao = document.querySelectorAll('#corpo-tabela tr');
+    if (linhasClassificacao.length > 0) {
+        linhasClassificacao.forEach(linha => {
+            const colunas = linha.querySelectorAll('td');
+            htmlConteudo += `
+                <tr style="border-bottom: 1px solid #ddd;">
+                    <td style="padding: 8px; font-weight: bold;">${colunas[0].textContent}</td>
+                    <td style="padding: 8px;">${colunas[1].textContent}</td>
+                    <td style="padding: 8px;">${colunas[2].textContent}</td>
+                </tr>
+            `;
+        });
+    } else {
+        htmlConteudo += `<tr><td colspan="3" style="padding: 8px; text-align:center; color:#999;">Nenhum jogo computado nesta rodada.</td></tr>`;
+    }
+    htmlConteudo += `</tbody></table>`;
+
+    // 4. Adicionar Composição das Equipes (Escalação)
+    htmlConteudo += `
+        <h2 style="color: #002d57; font-size: 16px; border-left: 4px solid #ffc107; padding-left: 8px; margin-bottom: 15px;">INTEGRANTES DAS EQUIPES</h2>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 30px; font-size: 13px;">
+    `;
+
+    times.forEach(nomeTime => {
+        const jogadoresDoTime = elenco.filter(j => j.time === nomeTime && j.presente);
+        let corTime = { 'Amarelo': '#ffc107', 'Rosa': '#e83e8c', 'Azul': '#007bff', 'Roxo': '#6f42c1' }[nomeTime];
+        
+        htmlConteudo += `
+            <div style="border: 1px solid #ddd; border-top: 4px solid ${corTime}; padding: 10px; border-radius: 4px; background-color: #fbfbfb;">
+                <div style="font-weight: bold; color: ${corTime}; margin-bottom: 5px; text-transform: uppercase;">TIME ${nomeTime}</div>
+                <ul style="padding-left: 15px; margin: 0; line-height: 1.4;">
+                    ${jogadoresDoTime.length === 0 ? '<li style="color:#999; list-style:none; padding-left:0;">Nenhum jogador</li>' : ''}
+                    ${jogadoresDoTime.map(j => `<li>${j.nome} ${j.tipo === 'mensalista' ? '(⭐️)' : ''}</li>`).join('')}
+                </ul>
+            </div>
+        `;
+    });
+    htmlConteudo += `</div>`;
+
+    // 5. Adicionar Resultados de Todos os Jogos (Fase de Grupos e Finais)
+  htmlConteudo += `
+        <div class="html2pdf__page-break"></div>
+
+        <h2 style="color: #002d57; font-size: 16px; border-left: 4px solid #ffc107; padding-left: 8px; margin-bottom: 10px; margin-top: 15px;">PLACARES DAS PARTIDAS</h2>
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+            <thead>
+                <tr style="background-color: #f2f2f2; text-align: left; border-bottom: 2px solid #ccc;">
+                    <th style="padding: 6px;">Confronto</th>
+                    <th style="padding: 6px; text-align: center; width: 25%;">Placar</th>
+                    <th style="padding: 6px; text-align: center; width: 30%;">Vencedor</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    // Une todas as listas de jogos para mapear no PDF
+    const todosOsJogos = [...partidas, ...semiFinais, ...finais];
+    
+    if (todosOsJogos.length > 0 && todosOsJogos.some(j => j.finalizada)) {
+        todosOsJogos.forEach(jogo => {
+            if (jogo.finalizada) {
+                const vencedor = jogo.pontosA > jogo.pontosB ? jogo.timeA : jogo.timeB;
+                let sufixoFase = '';
+                if(jogo.id.toString().includes('semi')) sufixoFase = ' (Semi)';
+                if(jogo.id.toString().includes('3lugar')) sufixoFase = ' (3º Lugar)';
+                if(jogo.id.toString().includes('1lugar')) sufixoFase = ' (Grande Final)';
+
+                htmlConteudo += `
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td style="padding: 6px;">${jogo.timeA} x ${jogo.timeB}${sufixoFase}</td>
+                        <td style="padding: 6px; text-align: center; font-weight: bold;">${jogo.pontosA} x ${jogo.pontosB}</td>
+                        <td style="padding: 6px; text-align: center; color: #28a745; font-weight: bold;">${vencedor}</td>
+                    </tr>
+                `;
+            }
+        });
+    } else {
+        htmlConteudo += `<tr><td colspan="3" style="padding: 6px; text-align:center; color:#999;">Nenhuma partida finalizada ainda.</td></tr>`;
+    }
+    
+    htmlConteudo += `</tbody></table>`;
+
+    // Injeta o HTML criado dentro do elemento temporário
+    relatorio.innerHTML = htmlConteudo;
+
+    // 6. Configurações de download do html2pdf
+    const opcoes = {
+        margin:       10,
+        filename:     `relatorio-bola-fora-${dataHoje.replace(/\//g, '-')}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true }, // Escala 2 deixa os textos super nítidos
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    // Executa a biblioteca para converter o HTML invisível em PDF e baixar
+    mostrarAviso("Gerando arquivo PDF...", "info");
+    html2pdf().set(opcoes).from(relatorio).save().then(() => {
+        mostrarAviso("PDF baixado com sucesso!", "sucesso");
+    }).catch(err => {
+        console.error(err);
+        mostrarAviso("Erro ao gerar o PDF.");
+    });
+}

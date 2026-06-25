@@ -20,8 +20,10 @@
             <button onclick="mudarAba('finais')" id="btn-finais">Finais</button>
         </nav>
         
-        <div style="margin-top: 15px;">
+      <div style="margin-top: 15px; margin-bottom: 10px; display: flex; gap: 15px; justify-content: center; align-items: center; flex-wrap: wrap;">
             <button onclick="resetarTorneio()" class="btn-reset">🔄 Iniciar Novo Torneio</button>
+            
+            <button onclick="exportarRelatorioPDF()" class="btn-reset" style="background-color: #28a745;">📄 Exportar PDF do Dia</button>
         </div>
     </header>
 
@@ -113,5 +115,8 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <script src="script.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 </body>
 </html>
